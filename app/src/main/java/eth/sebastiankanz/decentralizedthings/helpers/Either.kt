@@ -69,6 +69,17 @@ sealed class Either<out L, out R> {
             is Left -> fnL(a)
             is Right -> fnR(b)
         }
+
+    /**
+     * Applies suspendable fnL if this is a Left or suspendable fnR if this is a Right.
+     * @see Left
+     * @see Right
+     */
+    suspend fun foldSuspendable(fnL: suspend (L) -> Any, fnR: suspend (R) -> Any): Any =
+        when (this) {
+            is Left -> fnL(a)
+            is Right -> fnR(b)
+        }
 }
 
 /**
@@ -84,6 +95,16 @@ fun <A, B, C> ((A) -> B).c(f: (B) -> C): (A) -> C = {
  * to operate on. If it is Left, operations like map, flatMap, ... return the Left value unchanged.
  */
 fun <T, L, R> Either<L, R>.flatMap(fn: (R) -> Either<L, T>): Either<L, T> =
+    when (this) {
+        is Either.Left -> Either.Left(a)
+        is Either.Right -> fn(b)
+    }
+
+/**
+ * Right-biased flatMap() FP convention which means that Right is assumed to be the default case
+ * to operate on. If it is Left, operations like map, flatMap, ... return the Left value unchanged.
+ */
+suspend fun <T, L, R> Either<L, R>.flatMapAsync(fn: suspend (R) -> Either<L, T>): Either<L, T> =
     when (this) {
         is Either.Left -> Either.Left(a)
         is Either.Right -> fn(b)

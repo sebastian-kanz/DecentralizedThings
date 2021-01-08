@@ -20,7 +20,7 @@ val useCaseModule = module {
     single { ManipulateFileUseCase(get(), get(), get(), get(), get(), get()) }
     single { ShareFileUseCase() }
     single { SyncFileUseCase(get(), get(), get()) }
-    single { IPFSUseCase(get(), get(), get(named("PinataClient")), get()) }
+    single { IPFSUseCase(get(), get(), get()) }
     single { EncryptionUseCase(get()) }
     single { LocalStorageUseCase(androidApplication()) }
 }

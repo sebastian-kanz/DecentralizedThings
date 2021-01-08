@@ -3,9 +3,9 @@ package eth.sebastiankanz.decentralizedthings.data.repository
 import androidx.lifecycle.LiveData
 import eth.sebastiankanz.decentralizedthings.data.dao.FileDao
 import eth.sebastiankanz.decentralizedthings.data.model.File
+import eth.sebastiankanz.decentralizedthings.helpers.Either
+import eth.sebastiankanz.decentralizedthings.helpers.ErrorEntity
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 
@@ -17,19 +17,38 @@ class FileRepositoryImpl(
         private val LOGGER = Logger.getLogger("FileRepository")
     }
 
-    override fun getFile(hash: String): File? {
-        return fileDao.get(hash)
+    override suspend fun getFile(hash: String): Either<ErrorEntity, File> {
+        LOGGER.info("Getting file for hash: $hash")
+        return withContext(Dispatchers.IO) {
+            try {
+                val file = fileDao.get(hash)
+                Either.Right(file)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 
-    override fun getByMetaHash(metaHash: String): File? {
-        return fileDao.getByMetaHash(metaHash)
+    override suspend fun getByMetaHash(metaHash: String): Either<ErrorEntity, File> {
+        LOGGER.info("Getting file by meta hash: $metaHash")
+        return withContext(Dispatchers.IO) {
+            try {
+                val file = fileDao.getByMetaHash(metaHash)
+                Either.Right(file)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 
-    override fun create(file: File) {
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                LOGGER.info("Inserting file: $file")
+    override suspend fun create(file: File): Either<ErrorEntity, Unit> {
+        LOGGER.info("Inserting file: $file")
+        return withContext(Dispatchers.IO) {
+            try {
                 fileDao.insert(file)
+                Either.Right(Unit)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
             }
         }
     }
@@ -38,15 +57,26 @@ class FileRepositoryImpl(
         return fileDao.observeAll()
     }
 
-    override fun getAll(): List<File> {
-        return fileDao.getAll()
+    override suspend fun getAll(): Either<ErrorEntity, List<File>> {
+        LOGGER.info("Getting all files.")
+        return withContext(Dispatchers.IO) {
+            try {
+                val allFiles = fileDao.getAll()
+                Either.Right(allFiles)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 
-    override fun update(updatedFile: File) {
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                LOGGER.info("Updating File: $updatedFile")
-                fileDao.update(updatedFile)
+    override suspend fun update(file: File): Either<ErrorEntity, Unit> {
+        LOGGER.info("Updating File: $file")
+        return withContext(Dispatchers.IO) {
+            try {
+                fileDao.update(file)
+                Either.Right(Unit)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
             }
         }
     }
@@ -59,21 +89,38 @@ class FileRepositoryImpl(
         return fileDao.observeByMetaHash(metaHash)
     }
 
-    override fun delete(file: File) {
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
-                LOGGER.info("Deleting File: $file")
+    override suspend fun delete(file: File): Either<ErrorEntity, Unit> {
+        LOGGER.info("Deleting File: $file")
+        return withContext(Dispatchers.IO) {
+            try {
                 fileDao.delete(file)
+                Either.Right(Unit)
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
             }
         }
     }
 
-    override fun exists(contentHash: String): Boolean {
-        return fileDao.exists(contentHash)
+    override suspend fun exists(contentHash: String): Either<ErrorEntity, Boolean> {
+        LOGGER.info("Checking if file exists with content hash: $contentHash")
+        return withContext(Dispatchers.IO) {
+            try {
+                Either.Right(fileDao.exists(contentHash))
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 
-    override fun existsByMetaHash(metaHash: String): Boolean {
-        return fileDao.existsByMetaHash(metaHash)
+    override suspend fun existsByMetaHash(metaHash: String): Either<ErrorEntity, Boolean> {
+        LOGGER.info("Checking if file exists with meta hash: $metaHash")
+        return withContext(Dispatchers.IO) {
+            try {
+                Either.Right(fileDao.existsByMetaHash(metaHash))
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 
     override fun observeNextVersion(metaHash: String): LiveData<File?> {
@@ -84,7 +131,14 @@ class FileRepositoryImpl(
         return fileDao.observePreviousVersion(previousVersionHash)
     }
 
-    override fun getParents(metaHash: String): List<File> {
-        return fileDao.observeParents(metaHash)
+    override suspend fun getParents(metaHash: String): Either<ErrorEntity, List<File>> {
+        LOGGER.info("Getting parents for meta hash: $metaHash")
+        return withContext(Dispatchers.IO) {
+            try {
+                Either.Right(fileDao.getParents(metaHash))
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.FileError(e.message))
+            }
+        }
     }
 }

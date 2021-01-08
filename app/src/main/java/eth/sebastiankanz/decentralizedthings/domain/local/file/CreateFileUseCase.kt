@@ -1,7 +1,5 @@
 package eth.sebastiankanz.decentralizedthings.domain.local.file
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import com.google.gson.Gson
 import eth.sebastiankanz.decentralizedthings.data.model.File
 import eth.sebastiankanz.decentralizedthings.data.model.IPFSMetaFile
@@ -11,6 +9,8 @@ import eth.sebastiankanz.decentralizedthings.domain.ipfs.IPFSUseCase
 import eth.sebastiankanz.decentralizedthings.domain.local.LocalStorageUseCase
 import eth.sebastiankanz.decentralizedthings.extensions.getMetaFileNameFromFileName
 import eth.sebastiankanz.decentralizedthings.extensions.isValidIPFSHash
+import eth.sebastiankanz.decentralizedthings.helpers.Either
+import eth.sebastiankanz.decentralizedthings.helpers.ErrorEntity
 import java.util.logging.Logger
 
 class CreateFileUseCase(
@@ -37,7 +37,7 @@ class CreateFileUseCase(
      * @param files only set if this file is a directory. Contains all child elements as pairs of ipfs meta-hashes and the corresponding iv for decryption
      * @return LiveData object containing the file (null if something went wrong)
      */
-    fun create(
+    suspend fun create(
         data: ByteArray,
         name: String,
         path: String? = null,
@@ -46,78 +46,67 @@ class CreateFileUseCase(
         previousVersionNumber: Int = 0,
         onlyLocally: Boolean = false,
         files: List<Pair<String, String>> = emptyList()
-    ): LiveData<File?> {
-        try {
-            LOGGER.info("Creating file.")
+    ): Either<ErrorEntity, File> {
+        LOGGER.info("Creating file.")
+        return try {
             localStorageUseCase.writeContent(File(name = name, localPath = path), override, data)
-            return MediatorLiveData<File?>().apply {
-                addSource(ipfsUseCase.uploadToIPFS(data, onlyLocally, name)) { encryptionBundleContent ->
-                    if (encryptionBundleContent != null) {
-                        val contentHash = encryptionBundleContent.ipfsHash
-                        val contentIV = encryptionBundleContent.initializationVector
-                        if (contentHash.isValidIPFSHash()) {
-                            val metaFile = IPFSMetaFile(
-                                contentHash = contentHash,
-                                previousVersionHash = previousVersionHash,
-                                version = (previousVersionNumber + 1),
-                                name = name,
-                                timestamp = System.currentTimeMillis(),
-                                decryptedSize = data.size.toLong(),
-                                contentIV = contentIV,
-                                files = files
-                            )
-                            val metaFileJSON = gson.toJson(metaFile)
-                            localStorageUseCase.writeMetaData(File(name = name, localMetaPath = path), override, metaFileJSON.toByteArray())
-                            addSource(
-                                ipfsUseCase.uploadToIPFS(
-                                    metaFileJSON.toByteArray(),
-                                    onlyLocally,
-                                    name.getMetaFileNameFromFileName()
-                                )
-                            ) { encryptionBundleMeta ->
-                                if (encryptionBundleMeta != null) {
-                                    val metaHash = encryptionBundleMeta.ipfsHash
-                                    val metaIV = encryptionBundleMeta.initializationVector
-                                    if (metaHash.isValidIPFSHash()) {
-                                        val result = File(
-                                            contentHash = contentHash,
-                                            metaHash = metaHash,
-                                            previousVersionHash = previousVersionHash,
-                                            version = (previousVersionNumber + 1),
-                                            name = name,
-                                            timestamp = metaFile.timestamp,
-                                            decryptedSize = data.size.toLong(),
-                                            syncState = if (onlyLocally) SyncState.UNSYNCED_ONLY_LOCAL else SyncState.SYNCED,
-                                            localPath = path,
-                                            localMetaPath = path,
-                                            contentIV = contentIV,
-                                            metaIV = metaIV,
-                                            files = files
-                                        )
-                                        fileRepo.create(result)
-                                        postValue(result)
-                                    } else {
-                                        LOGGER.warning("$metaHash is not a valid IPFS hash. Could not create file.")
-                                        postValue(null)
+            when(val contentUploadResult = ipfsUseCase.uploadToIPFS(data, onlyLocally, name)) {
+                is Either.Left -> contentUploadResult
+                is Either.Right -> {
+                    val encryptionBundleContent = contentUploadResult.b
+                    val contentHash = encryptionBundleContent.ipfsHash
+                    val contentIV = encryptionBundleContent.initializationVector
+                    if (contentHash.isValidIPFSHash()) {
+                        val metaFile = IPFSMetaFile(
+                            contentHash = contentHash,
+                            previousVersionHash = previousVersionHash,
+                            version = (previousVersionNumber + 1),
+                            name = name,
+                            timestamp = System.currentTimeMillis(),
+                            decryptedSize = data.size.toLong(),
+                            contentIV = contentIV,
+                            files = files
+                        )
+                        val metaFileJSON = gson.toJson(metaFile)
+                        localStorageUseCase.writeMetaData(File(name = name, localMetaPath = path), override, metaFileJSON.toByteArray())
+                        when(val metaUploadResult = ipfsUseCase.uploadToIPFS(metaFileJSON.toByteArray(), onlyLocally, name.getMetaFileNameFromFileName())) {
+                            is Either.Left -> metaUploadResult
+                            is Either.Right -> {
+                                val encryptionBundleMeta = metaUploadResult.b
+                                val metaHash = encryptionBundleMeta.ipfsHash
+                                val metaIV = encryptionBundleMeta.initializationVector
+                                if (metaHash.isValidIPFSHash()) {
+                                    val result = File(
+                                        contentHash = contentHash,
+                                        metaHash = metaHash,
+                                        previousVersionHash = previousVersionHash,
+                                        version = (previousVersionNumber + 1),
+                                        name = name,
+                                        timestamp = metaFile.timestamp,
+                                        decryptedSize = data.size.toLong(),
+                                        syncState = if (onlyLocally) SyncState.UNSYNCED_ONLY_LOCAL else SyncState.SYNCED,
+                                        localPath = path,
+                                        localMetaPath = path,
+                                        contentIV = contentIV,
+                                        metaIV = metaIV,
+                                        files = files
+                                    )
+                                    when(val createFileResult = fileRepo.create(result)) {
+                                        is Either.Left -> createFileResult
+                                        is Either.Right -> Either.Right(result)
                                     }
                                 } else {
-                                    LOGGER.warning("Uploading meta data to IPFS failed. Could not create file.")
-                                    postValue(null)
+                                    Either.Left(ErrorEntity.UseCaseError.CreateFileError("$metaHash is not a valid IPFS hash."))
                                 }
                             }
-                        } else {
-                            LOGGER.warning("$contentHash is not a valid IPFS hash. Could not create file.")
-                            postValue(null)
                         }
                     } else {
-                        LOGGER.warning("Uploading content to IPFS failed. Could not create file.")
-                        postValue(null)
+                        Either.Left(ErrorEntity.UseCaseError.CreateFileError("$contentHash is not a valid IPFS hash."))
                     }
                 }
             }
-        } catch (e: FileAlreadyExistsException) {
-            LOGGER.warning("Could not create file: File Already exists.")
-            return MediatorLiveData<File?>().apply { postValue(null) }
+        } catch (e: Exception) {
+            Either.Left(ErrorEntity.UseCaseError.CreateFileError(e.message))
         }
     }
 }

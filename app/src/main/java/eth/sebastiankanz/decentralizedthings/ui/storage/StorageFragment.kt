@@ -23,6 +23,7 @@ import eth.sebastiankanz.decentralizedthings.R
 import eth.sebastiankanz.decentralizedthings.data.model.File
 import eth.sebastiankanz.decentralizedthings.data.model.SyncState
 import eth.sebastiankanz.decentralizedthings.databinding.FragmentStorageBinding
+import eth.sebastiankanz.decentralizedthings.helpers.ErrorEntity
 import eth.sebastiankanz.decentralizedthings.helpers.zipLiveData
 import kotlinx.android.synthetic.main.dialog_filter_layout.view.*
 import kotlinx.android.synthetic.main.dialog_input_layout.view.*
@@ -81,27 +82,26 @@ class StorageFragment : Fragment() {
 
     private val storageViewModel: StorageViewModel by inject()
     private lateinit var binding: FragmentStorageBinding
-
     private lateinit var directoryObserver: FileObserver
-
     private lateinit var storageAdapter: StorageCardAdapter
-
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<ConstraintLayout>
-
     private var currentAsset: File? = null
-
     private var isCurrentlyModifying = false
-
     private val currentFilters = MutableLiveData<List<FILTER>>().apply { postValue(listOf(FILTER.NONE)) }
     private val currentSorting = MutableLiveData<Pair<Boolean, SORTING>>().apply { postValue(Pair(true, SORTING.NAME)) }
+    private val createdFiles = mutableListOf<java.io.File>()
+
+    //todo: Check which variables and functions should be kept in this fragment and which should be outsourced to the viewmodel
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_storage, container, false)
         val view = binding.root
+
+        initErrorHandling()
 
         zipLiveData(storageViewModel.latestAllFilesLiveData, currentFilters, currentSorting).observe(
             viewLifecycleOwner,
@@ -122,41 +122,17 @@ class StorageFragment : Fragment() {
             }
         )
 
+//        This does not work: observer will not trigger!
+//        storageViewModel.allFilesLiveData.observe(viewLifecycleOwner, { allDatabaseFiles ->
+//            val allMetaFiles = context?.getExternalFilesDir(null)?.walk()?.filter { item -> item.isFile && item.name.contains(".meta.") }
+//            allMetaFiles?.filter { metaFile -> allDatabaseFiles.none { databaseFile -> databaseFile.name != metaFile.name.substringBefore(".meta.") } }
+//                ?.forEach { it.delete() }
+//
+//            val allContentFiles = context?.getExternalFilesDir(null)?.walk()?.filter { item -> item.isFile && !item.name.contains(".meta.") }
+//            allContentFiles?.filter { contentFile -> allDatabaseFiles.none { databaseFile -> databaseFile.name != contentFile.name } }?.forEach { it.delete() }
+//        })
+
         initRecyclerView(emptyList())
-
-        view.fab.setOnClickListener { root ->
-            binding.root.loadingBar.visibility = View.VISIBLE
-            var chooseFile = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            chooseFile.type = "*/*"
-            chooseFile = Intent.createChooser(chooseFile, "Choose a file")
-            startActivityForResult(chooseFile, 1234)
-        }
-        directoryObserver = object : FileObserver(context?.getExternalFilesDir(null)?.path, ALL_EVENTS) {
-            override fun onEvent(event: Int, path: String?) {
-                if (!isCurrentlyModifying) {
-                    when (event) {
-                        DELETE -> {
-                            Snackbar.make(binding.root, "File content deleted: " + path.toString(), Snackbar.LENGTH_LONG)
-                                .setAnchorView(view.fab)
-                                .show()
-                            val deletedLocalFile =
-                                storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
-                            storageViewModel.onFileDeletedExternally(deletedLocalFile)
-                        }
-                        MODIFY -> {
-                            Snackbar.make(binding.root, "File content modified: " + path.toString(), Snackbar.LENGTH_LONG)
-                                .setAnchorView(view.fab)
-                                .show()
-                            val modifiedLocalFile =
-                                storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
-                            storageViewModel.onFileModifiedExternally(modifiedLocalFile)
-                        }
-                    }
-                }
-            }
-        }
-
-        directoryObserver.startWatching()
 
         initBottomSheet()
 
@@ -164,7 +140,89 @@ class StorageFragment : Fragment() {
 
         initBottomAppBar()
 
+        initDirectoryObserver()
+
+        view.fab.setOnClickListener { root ->
+            onModifyingStarted()
+            binding.root.loadingBar.visibility = View.VISIBLE
+            var chooseFile = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            chooseFile.type = "*/*"
+            chooseFile = Intent.createChooser(chooseFile, "Choose a file")
+            startActivityForResult(chooseFile, 1234)
+        }
+
         return view
+    }
+
+    private fun initDirectoryObserver() {
+        //todo: add directory observers for all directories not only for the root directory
+        directoryObserver = object : FileObserver(context?.getExternalFilesDir(null)?.path, ALL_EVENTS) {
+            override fun onEvent(event: Int, path: String?) {
+                if (!isCurrentlyModifying) {
+                    when (event) {
+                        DELETE -> {
+                            Snackbar.make(binding.root, "File content deleted: " + path.toString(), Snackbar.LENGTH_SHORT)
+                                .setAnchorView(binding.root.fab)
+                                .show()
+                            val deletedLocalFile =
+                                storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
+                            storageViewModel.onFileDeletedExternally(deletedLocalFile)
+                        }
+                        MODIFY -> {
+                            Snackbar.make(binding.root, "File content modified: " + path.toString(), Snackbar.LENGTH_SHORT)
+                                .setAnchorView(binding.root.fab)
+                                .show()
+                            val modifiedLocalFile =
+                                storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
+                            storageViewModel.onFileModifiedExternally(modifiedLocalFile)
+                        }
+                        CREATE -> {
+                            //todo: if created asset is directory, add directory observer
+                            val file = java.io.File(path)
+                            if (file.isFile) {
+                                createdFiles.add(file)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        directoryObserver.startWatching()
+    }
+
+    private fun initErrorHandling() {
+        storageViewModel.error.observe(viewLifecycleOwner, {
+            when (it) {
+                is ErrorEntity.ApiError -> showErrorMessage("API error.")
+                is ErrorEntity.RepoError.PinningError -> showErrorMessage(it.msg)
+                is ErrorEntity.RepoError.IPFSError -> showErrorMessage(it.msg)
+                is ErrorEntity.RepoError.FileError -> showErrorMessage(it.msg)
+                is ErrorEntity.RepoError.EncryptionBundleError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.UploadToIPFSFailed -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.DownloadFromIPFSFailed -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.CreateFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.GetFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.ImportFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.ManipulateFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.ShareFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.SyncFileError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.EncryptionError -> showErrorMessage(it.msg)
+                is ErrorEntity.UseCaseError.LocalStorageError -> showErrorMessage(it.msg)
+                null -> showErrorMessage("Unknown error.")
+            }
+        })
+    }
+
+    private fun showErrorMessage(message: String?) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Error")
+            .setMessage("An error occurred: $message")
+            .setNeutralButton("Dismiss") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+        onModifyingCompleted()
     }
 
     private fun initBottomSheet() {
@@ -353,6 +411,8 @@ class StorageFragment : Fragment() {
 
     private fun onModifyingCompleted() {
         isCurrentlyModifying = false
+        //todo: check if all createdFiles are existing in database. If not (due to e.g. something went wrong during creation),
+        // delete the local files (also clear list!)
     }
 
     private fun onBottomSheetActionCompleted() {
@@ -432,26 +492,19 @@ class StorageFragment : Fragment() {
     private fun createFile(fileName: String, fileType: String, fileContent: ByteArray, localFileUri: Uri) {
         storageViewModel.createFile(fileName, fileType, fileContent).observe(viewLifecycleOwner, {
             binding.root.loadingBar.visibility = View.GONE
-            if (it == null) {
-                Snackbar.make(binding.root, "File could not be created!", Snackbar.LENGTH_LONG)
-                    .setAnchorView(binding.fab)
-                    .setAction("action") {
-                        // Responds to click on the action
-                    }
-                    .show()
-            }
+            onModifyingCompleted()
         })
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Attention")
-            .setMessage("Do you want to import the file or keep a local copy?")
-            .setNeutralButton("Import") { _, _ ->
-                //val test = java.io.File(localFileUri.pat)
-                //Log.i("test123", test.toString())
-                //Log.i("test123", test.delete().toString())
-            }
-            .setPositiveButton("Copy") { _, _ ->
-
-            }
-            .show()
+//        MaterialAlertDialogBuilder(requireContext())
+//            .setTitle("Attention")
+//            .setMessage("Do you want to import the file or keep a local copy?")
+//            .setNeutralButton("Import") { _, _ ->
+//                //val test = java.io.File(localFileUri.pat)
+//                //Log.i("test123", test.toString())
+//                //Log.i("test123", test.delete().toString())
+//            }
+//            .setPositiveButton("Copy") { _, _ ->
+//
+//            }
+//            .show()
     }
 }

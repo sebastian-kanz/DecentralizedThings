@@ -20,10 +20,6 @@ class GetFileUseCase(
 
     fun observeAll() = fileRepo.observeAll()
 
-    fun getAll() = fileRepo.getAll()
-
-    fun observe(hash: String) = fileRepo.observe(hash)
-
     fun observeAllLatest(): LiveData<List<File>> {
         val mediatorLiveData: MediatorLiveData<List<File>> = MediatorLiveData<List<File>>()
         mediatorLiveData.addSource(fileRepo.observeAll()) { allFiles ->
@@ -33,44 +29,44 @@ class GetFileUseCase(
         return mediatorLiveData
     }
 
-    fun hasPreviousVersion(file: File): Boolean {
-        if (file.previousVersionHash != null) {
-            if (file.previousVersionHash.isNotBlank() && file.previousVersionHash.isNotEmpty()) {
-                return true
-            }
-        }
-        return false
-    }
-
-    fun observeHasNextVersion(file: File): LiveData<Boolean> {
-        val mediatorLiveData: MediatorLiveData<Boolean> = MediatorLiveData<Boolean>()
-        mediatorLiveData.addSource(fileRepo.observeNextVersion(file.metaHash)) { nextFileVersion ->
-            if (nextFileVersion == null) {
-                mediatorLiveData.postValue(false)
-            } else {
-                mediatorLiveData.postValue(true)
-            }
-        }
-        return mediatorLiveData
-    }
-
-    fun observePreviousFileVersion(file: File): LiveData<File?> {
-        val mediatorLiveData: MediatorLiveData<File?> = MediatorLiveData<File?>()
-        if (file.previousVersionHash != null) {
-            mediatorLiveData.addSource(fileRepo.observePreviousVersion(file.previousVersionHash)) { previousFileVersion ->
-                mediatorLiveData.postValue(previousFileVersion)
-            }
-        } else {
-            mediatorLiveData.postValue(null)
-        }
-        return mediatorLiveData
-    }
-
-    fun observeNextFileVersion(file: File): LiveData<File?> {
-        val mediatorLiveData: MediatorLiveData<File?> = MediatorLiveData<File?>()
-        mediatorLiveData.addSource(fileRepo.observeNextVersion(file.contentHash)) { nextFileVersion ->
-            mediatorLiveData.postValue(nextFileVersion)
-        }
-        return mediatorLiveData
-    }
+//    fun hasPreviousVersion(file: File): Boolean {
+//        if (file.previousVersionHash != null) {
+//            if (file.previousVersionHash.isNotBlank() && file.previousVersionHash.isNotEmpty()) {
+//                return true
+//            }
+//        }
+//        return false
+//    }
+//
+//    fun observeHasNextVersion(file: File): LiveData<Boolean> {
+//        val mediatorLiveData: MediatorLiveData<Boolean> = MediatorLiveData<Boolean>()
+//        mediatorLiveData.addSource(fileRepo.observeNextVersion(file.metaHash)) { nextFileVersion ->
+//            if (nextFileVersion == null) {
+//                mediatorLiveData.postValue(false)
+//            } else {
+//                mediatorLiveData.postValue(true)
+//            }
+//        }
+//        return mediatorLiveData
+//    }
+//
+//    fun observePreviousFileVersion(file: File): LiveData<File?> {
+//        val mediatorLiveData: MediatorLiveData<File?> = MediatorLiveData<File?>()
+//        if (file.previousVersionHash != null) {
+//            mediatorLiveData.addSource(fileRepo.observePreviousVersion(file.previousVersionHash)) { previousFileVersion ->
+//                mediatorLiveData.postValue(previousFileVersion)
+//            }
+//        } else {
+//            mediatorLiveData.postValue(null)
+//        }
+//        return mediatorLiveData
+//    }
+//
+//    fun observeNextFileVersion(file: File): LiveData<File?> {
+//        val mediatorLiveData: MediatorLiveData<File?> = MediatorLiveData<File?>()
+//        mediatorLiveData.addSource(fileRepo.observeNextVersion(file.contentHash)) { nextFileVersion ->
+//            mediatorLiveData.postValue(nextFileVersion)
+//        }
+//        return mediatorLiveData
+//    }
 }

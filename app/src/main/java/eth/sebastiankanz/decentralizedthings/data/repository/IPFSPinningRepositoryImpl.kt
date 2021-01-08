@@ -1,50 +1,50 @@
 package eth.sebastiankanz.decentralizedthings.data.repository
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import eth.sebastiankanz.decentralizedthings.helpers.Either
+import eth.sebastiankanz.decentralizedthings.helpers.ErrorEntity
 import eth.sebastiankanz.decentralizedthings.network.PinataClient
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 
 class IPFSPinningRepositoryImpl(
     private val pinataClient: PinataClient
-): IPFSPinningRepository {
+) : IPFSPinningRepository {
 
     companion object {
         private val LOGGER = Logger.getLogger("IPFSPinningRepository")
         private const val HTTP_OK = "OK"
     }
 
-    override fun pinByHash(hash: String, pinName: String): LiveData<Boolean> {
-        val pinningSuccess = MutableLiveData<Boolean>()
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
+    override suspend fun pinByHash(hash: String, pinName: String): Either<ErrorEntity, Boolean> {
+        LOGGER.info("Pinning hash $hash with name $pinName.")
+        return withContext(Dispatchers.IO) {
+            try {
                 val pinataResponse = pinataClient.pinByHash(hash, pinName)
-                if(pinataResponse.id != "") {
-                    pinningSuccess.postValue(true)
+                if (pinataResponse.id != "") {
+                    Either.Right(true)
                 } else {
-                    pinningSuccess.postValue(false)
+                    Either.Right(false)
                 }
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.PinningError(e.message))
             }
         }
-        return pinningSuccess
     }
 
-    override fun unPinByHash(hash: String): LiveData<Boolean> {
-        val unpinningSuccess = MutableLiveData<Boolean>()
-        GlobalScope.launch {
-            withContext(Dispatchers.IO) {
+    override suspend fun unPinByHash(hash: String): Either<ErrorEntity, Boolean> {
+        LOGGER.info("Pinning hash $hash.")
+        return withContext(Dispatchers.IO) {
+            try {
                 val pinataResponse = pinataClient.unPinByHash(hash)
-                if(pinataResponse.string() == HTTP_OK) {
-                    unpinningSuccess.postValue(true)
+                if (pinataResponse.string() == HTTP_OK) {
+                    Either.Right(true)
                 } else {
-                    unpinningSuccess.postValue(false)
+                    Either.Right(false)
                 }
+            } catch (e: Exception) {
+                Either.Left(ErrorEntity.RepoError.PinningError(e.message))
             }
         }
-        return unpinningSuccess
     }
 }

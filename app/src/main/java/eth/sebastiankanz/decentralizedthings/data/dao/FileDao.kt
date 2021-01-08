@@ -23,19 +23,19 @@ interface FileDao {
     fun observeAllLatest(): LiveData<List<File>>
 
     @Query(QUERY_ALL)
-    fun getAll(): List<File>
+    suspend fun getAll(): List<File>
 
     @Query(QUERY_BY_HASH)
-    fun get(fileHash: String): File?
+    suspend fun get(fileHash: String): File
 
     @Query(QUERY_BY_META_HASH)
-    fun getByMetaHash(metaHash: String): File?
+    suspend fun getByMetaHash(metaHash: String): File
 
     @Query(QUERY_EXISTS)
-    fun exists(fileHash: String): Boolean
+    suspend fun exists(fileHash: String): Boolean
 
     @Query(QUERY_EXISTS_BY_META_HASH)
-    fun existsByMetaHash(metaHash: String): Boolean
+    suspend fun existsByMetaHash(metaHash: String): Boolean
 
     @Query(QUERY_BY_HASH)
     fun observe(fileHash: String): LiveData<File?>
@@ -59,7 +59,7 @@ interface FileDao {
     suspend fun delete(file: File)
 
     @Query(QUERY_PARENTS)
-    fun observeParents(metaHash: String): List<File>
+    suspend fun getParents(metaHash: String): List<File>
 
     companion object {
         private const val QUERY_ALL = "SELECT * FROM files ORDER BY timestamp"
