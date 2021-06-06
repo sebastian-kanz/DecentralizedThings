@@ -11,8 +11,13 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/IPFS_HTTP_CLIENT" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/base" />
+            <option value="$PROJECT_DIR$/features" />
+            <option value="$PROJECT_DIR$/features/FileStorage" />
+            <option value="$PROJECT_DIR$/libraries" />
+            <option value="$PROJECT_DIR$/libraries/IPFSStorage" />
+            <option value="$PROJECT_DIR$/libraries/IPFS_HTTP_CLIENT" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

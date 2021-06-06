@@ -10,4 +10,10 @@
 
     <string name="menu_storage">Storage</string>
     <string name="menu_gallery">Gallery</string>
+    <string name="title_activity_file_storage">FileStorageActivity</string>
+    <string name="title_filestorage">FileStorage</string>
+    <string name="title_activity_bottom">MainActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
 </resources>

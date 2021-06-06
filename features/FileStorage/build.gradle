@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.dynamic-feature'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+    id 'kotlin-kapt'
+    id 'kotlinx-serialization'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.1"
+    defaultConfig {
+        applicationId "eth.sebastiankanz.decentralizedthings.filestorage"
+        minSdkVersion 26
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        dataBinding = true
+        viewBinding = true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+dependencies {
+    implementation project(':app')
+    implementation project(':base')
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation project(':libraries:IPFSStorage')
+    implementation jetbrains.kotlin_stdlib
+    implementation jetbrains.kotlin_reflect
+    implementation androidx.core_ktx
+    implementation androidx.constraintlayout
+
+    implementation androidx.navigation_fragment_ktx
+    implementation androidx.navigation_ui_ktx
+
+    implementation androidx.recyclerview
+    implementation google.material
+
+    implementation jetbrains.kotlinx_coroutines_android
+    implementation androidx.lifecycle_viewmodel_ktx
+    implementation androidx.lifecycle_livedata_ktx
+
+    // Koin
+    implementation koin.koin_android
+    implementation koin.koin_android_scope
+    implementation koin.koin_android_viewmodel
+
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.1"
+}

@@ -3,16 +3,13 @@ package eth.sebastiankanz.decentralizedthings
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import eth.sebastiankanz.decentralizedthings.di.modules.androidModule
+import eth.sebastiankanz.decentralizedthings.base.di.modules.baseModule
 import eth.sebastiankanz.decentralizedthings.di.modules.applicationModule
-import eth.sebastiankanz.decentralizedthings.di.modules.databaseModule
-import eth.sebastiankanz.decentralizedthings.di.modules.ipfsModule
-import eth.sebastiankanz.decentralizedthings.di.modules.networkModule
-import eth.sebastiankanz.decentralizedthings.di.modules.repositoryModule
-import eth.sebastiankanz.decentralizedthings.di.modules.useCaseModule
+import eth.sebastiankanz.decentralizedthings.di.modules.libraryModule
 import eth.sebastiankanz.decentralizedthings.di.modules.viewModelModule
-import org.koin.core.KoinComponent
+import eth.sebastiankanz.decentralizedthings.features.Features
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.component.KoinComponent
 import org.koin.core.context.startKoin
 
 class DecentralizedThingsApplication : Application(), KoinComponent {
@@ -37,6 +34,7 @@ class DecentralizedThingsApplication : Application(), KoinComponent {
     override fun onCreate() {
         super.onCreate()
         initDI()
+        Features.load()
         registerActivityLifecycleCallbacks(mActivityLifecycleCallbacks)
     }
 
@@ -46,14 +44,10 @@ class DecentralizedThingsApplication : Application(), KoinComponent {
             androidContext(this@DecentralizedThingsApplication)
             modules(
                 listOf(
-                    androidModule,
+                    baseModule,
+                    libraryModule,
                     applicationModule,
-                    databaseModule,
-                    ipfsModule,
-                    repositoryModule,
-                    useCaseModule,
                     viewModelModule,
-                    networkModule
                 )
             )
         }

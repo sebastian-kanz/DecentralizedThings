@@ -1,3 +1,6 @@
-include ':IPFS_HTTP_CLIENT'
+include ':base'
+include ':features:FileStorage'
+include ':libraries:IPFSStorage'
+include ':libraries:IPFS_HTTP_CLIENT'
 include ':app'
 rootProject.name = "DecentralizedThings"

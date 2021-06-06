@@ -7,9 +7,9 @@
 
     <fragment
         android:id="@+id/nav_storage"
-        android:name="eth.sebastiankanz.decentralizedthings.ui.storage.StorageFragment"
+        android:name="eth.sebastiankanz.decentralizedthings.filestorage.ui.StorageFragment"
         android:label="@string/menu_storage"
-        tools:layout="@layout/fragment_storage" />
+        tools:layout="@layout/fragment_file_storage" />
 
     <fragment
         android:id="@+id/nav_gallery"

@@ -1,0 +1,94 @@
+ext {
+    // https://medium.com/@iamanbansal/manage-your-dependencies-in-multi-module-android-project-eb4fc29066af
+    versions = [
+            kotlin_version                      :   "1.4.32",
+            kotlinx_coroutines_android_version  :   "1.3.9",
+            lifecycle_viewmodel_ktx_version     :   "2.2.0",
+            lifecycle_livedata_ktx_version      :   "2.2.0",
+            core_testing_version                :   "2.1.0",
+            room_version                        :   "2.2.5",
+            core_ktx_version                    :   "1.3.2",
+            appcompat_version                   :   "1.2.0",
+            constraintlayout_version            :   "2.0.4",
+            legacy_support_v4_version           :   "1.0.0",
+            junit_version                       :   "4.13",
+            material_version                    :   "1.3.0-beta01",
+            mockk_version                       :   "1.10.2",
+            awaitility_version                  :   "4.0.3",
+            koin_version                        :   "2.2.2",
+            recyclerview_version                :   "1.2.0",
+
+            gson_version                        :   "2.8.6",
+    ]
+
+    androidx = [
+            lifecycle_viewmodel_ktx     :   "androidx.lifecycle:lifecycle-viewmodel-ktx:${versions.lifecycle_viewmodel_ktx_version}",
+            lifecycle_livedata_ktx      :   "androidx.lifecycle:lifecycle-livedata-ktx:${versions.lifecycle_livedata_ktx_version}",
+
+            core_testing                :   "androidx.arch.core:core-testing:${versions.core_testing_version}",
+
+            room_runtime    :   "androidx.room:room-runtime:${versions.room_version}",
+            room_compiler   :   "androidx.room:room-compiler:${versions.room_version}",
+            room_ktx        :   "androidx.room:room-ktx:${versions.room_version}",
+            room_testing    :   "androidx.room:room-testing:${versions.room_version}",
+
+            navigation_fragment_ktx :   'androidx.navigation:navigation-fragment-ktx:2.3.1',
+            navigation_ui_ktx       :   'androidx.navigation:navigation-ui-ktx:2.3.1',
+
+            core_ktx            :   "androidx.core:core-ktx:${versions.core_ktx_version}",
+            appcompat           :   "androidx.appcompat:appcompat:${versions.appcompat_version}",
+            constraintlayout    :   "androidx.constraintlayout:constraintlayout:${versions.constraintlayout_version}",
+            coordinatorlayout   :   "androidx.constraintlayout:constraintlayout:${versions.constraintlayout_version}",
+            drawerlayout        :   "androidx.constraintlayout:constraintlayout:${versions.constraintlayout_version}",
+            recyclerview        :   "androidx.recyclerview:recyclerview:${versions.recyclerview_version}",
+            fragment            :   "androidx.fragment:fragment:${versions.material_version}",
+    ]
+
+//    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+//    implementation 'androidx.navigation:navigation-fragment:2.3.4'
+//    implementation 'androidx.navigation:navigation-ui:2.3.1'
+//    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+//    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.1'
+//    implementation 'androidx.navigation:navigation-ui-ktx:2.3.1'
+//    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+//    implementation 'androidx.drawerlayout:drawerlayout:1.1.1'
+//    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
+
+    junit = [
+            junit   :   "junit:junit:${versions.junit_version}",
+    ]
+
+    google = [
+            material    :   "com.google.android.material:material:${versions.material_version}",
+    ]
+
+    jetbrains = [
+            kotlin_stdlib               :   "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin_version}",
+            kotlin_reflect              :   "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin_version}",
+            kotlin_gradle_plugin        :   "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin_version}",
+            kotlinx_coroutines_android  :   "org.jetbrains.kotlinx:kotlinx-coroutines-android:${versions.kotlinx_coroutines_android_version}",
+            kotlinx_coroutines_test     :   "org.jetbrains.kotlinx:kotlinx-coroutines-test:${versions.kotlinx_coroutines_android_version}",
+    ]
+
+    mockk = [
+            mockk           :   "io.mockk:mockk:${versions.mockk_version}",
+            mockk_android   :   "io.mockk:mockk-android:${versions.mockk_version}",
+    ]
+
+    awaitility = [
+            awaitility          :   "org.awaitility:awaitility:${versions.awaitility_version}",
+            awaitility_kotlin   :   "org.awaitility:awaitility-kotlin:${versions.awaitility_version}",
+    ]
+
+    koin = [
+            koin_android                :   "org.koin:koin-android:${versions.koin_version}",
+            koin_android_scope          :   "org.koin:koin-android-scope:${versions.koin_version}",
+            koin_android_viewmodel      :   "org.koin:koin-android-viewmodel:${versions.koin_version}",
+            koin_test                   :   "org.koin:koin-test:${versions.koin_version}",
+    ]
+
+    gson = [
+            general    :    "com.google.code.gson:gson:${versions.gson_version}"
+    ]
+
+}

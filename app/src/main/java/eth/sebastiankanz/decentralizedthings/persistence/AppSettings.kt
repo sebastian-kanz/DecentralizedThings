@@ -2,17 +2,27 @@ package eth.sebastiankanz.decentralizedthings.persistence
 
 import android.content.Context
 import android.content.SharedPreferences
-import org.koin.core.KoinComponent
+import android.provider.Settings
 
 class AppSettings(
     private val context: Context
-) : KoinComponent {
+) {
     companion object {
+        private const val IPFS_TEST_SHARED_PREFERENCES = "decentralizedthings_sharedPreferences"
+        private const val UNIQUE_ID = "decentralizedthings_uuid"
         private const val APP_SETTINGS_ANALYTICS_ENABLED = "app_settings_analytics_enabled"
-        private const val IPFS_TEST_SHARED_PREFERENCES = "ipfs_test_sharedPreferences";
     }
 
-    private val mSharedPreferences: SharedPreferences = context.getSharedPreferences(IPFS_TEST_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+
+    private val mSharedPreferences: SharedPreferences
+
+    init {
+        mSharedPreferences = context.getSharedPreferences(IPFS_TEST_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+        if(!mSharedPreferences.contains(UNIQUE_ID)) {
+            mSharedPreferences.edit().putString(UNIQUE_ID, Settings.Secure.ANDROID_ID).apply()
+        }
+//        EncryptedSharedPreferences
+    }
 
     fun cleanUp() {
         //remove some data
