@@ -17,11 +17,6 @@
         <dist:fusing dist:include="true" />
     </dist:module>
 
-    <application android:theme="@style/Theme.MyApp">
-        <activity
-            android:name=".ui.FileStorageActivity"
-            android:label="@string/title_activity_file_storage"
-            android:theme="@style/Theme.MyApp.NoActionBar"></activity>
-    </application>
+    <application android:theme="@style/Theme.MyApp"/>
 
 </manifest>

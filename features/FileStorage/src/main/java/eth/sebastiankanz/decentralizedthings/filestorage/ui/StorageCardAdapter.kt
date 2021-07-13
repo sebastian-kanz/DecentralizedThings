@@ -9,7 +9,7 @@ import eth.sebastiankanz.decentralizedthings.filestorage.R
 import eth.sebastiankanz.decentralizedthings.filestorage.databinding.StorageCardViewBinding
 import kotlinx.android.synthetic.main.storage_card_view.view.*
 
-class StorageCardAdapter(
+internal class StorageCardAdapter(
     private val viewModel: FileStorageViewModel,
     private val fragment: FileStorageFragment,
     private var files: List<File>
@@ -43,7 +43,7 @@ class StorageCardAdapter(
         viewType: Int
     ): StorageListViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        val binding = StorageCardViewBinding.inflate(inflater)
+        val binding = StorageCardViewBinding.inflate(inflater, parent, false)
         return StorageListViewHolder(binding)
     }
 

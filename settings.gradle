@@ -2,5 +2,6 @@ include ':base'
 include ':features:FileStorage'
 include ':libraries:IPFSStorage'
 include ':libraries:IPFS_HTTP_CLIENT'
+include ':libraries:QRCodeManager'
 include ':app'
 rootProject.name = "DecentralizedThings"

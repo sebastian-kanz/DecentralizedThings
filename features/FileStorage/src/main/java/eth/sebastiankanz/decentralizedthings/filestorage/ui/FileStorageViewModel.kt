@@ -1,5 +1,6 @@
 package eth.sebastiankanz.decentralizedthings.filestorage.ui
 
+import android.graphics.Bitmap
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
@@ -7,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import eth.sebastiankanz.decentralizedthings.base.data.model.SyncState
-import eth.sebastiankanz.decentralizedthings.base.features.filestorage.IFileStorageWorker
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.model.File
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.model.FileError
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.operators.FileFilter
@@ -20,11 +20,23 @@ import eth.sebastiankanz.decentralizedthings.base.helpers.onSuccess
 import eth.sebastiankanz.decentralizedthings.base.helpers.zipLiveData
 import eth.sebastiankanz.decentralizedthings.features.FeatureId
 import eth.sebastiankanz.decentralizedthings.features.Features
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.CreateFileUseCase
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.GetFileUseCase
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.ManipulateFileUseCase
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.ShareFileUseCase
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.SyncFileUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.FileOutputStream
 import java.util.logging.Logger
 
-class FileStorageViewModel : ViewModel() {
+internal class FileStorageViewModel(
+    private val getFileUseCase: GetFileUseCase,
+    private val createFileUseCase: CreateFileUseCase,
+    private val manipulateFileUseCase: ManipulateFileUseCase,
+    private val syncFileUseCase: SyncFileUseCase,
+    private val shareFileUseCase: ShareFileUseCase,
+) : ViewModel() {
 
     companion object {
         private val LOGGER = Logger.getLogger("StorageViewModel")
@@ -33,12 +45,6 @@ class FileStorageViewModel : ViewModel() {
     private var _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean>
         get() = _isProcessing
-
-    private val fileStorageWorker: IFileStorageWorker? = if (Features.isEnabled(FeatureId.FILE_STORAGE)) {
-        Features.getFeatureWorker(FeatureId.FILE_STORAGE) as IFileStorageWorker
-    } else {
-        null
-    }
 
     val fileFilters = MutableLiveData(
         listOf<FileFilter>(
@@ -52,13 +58,13 @@ class FileStorageViewModel : ViewModel() {
     private val fileManipulators = zipLiveData(fileFilters, fileFilterChaining, fileSorting)
 
     val allFilesLiveData =
-        fileStorageWorker?.observeAll(fileFilters.value ?: listOf(), fileFilterChaining.value, fileSorting.value) ?: MutableLiveData(emptyList())
+        getFileUseCase.observeAll(fileFilters.value ?: listOf(), fileFilterChaining.value, fileSorting.value)
 
     private val _showLatest = MutableLiveData(true)
 
     val latestAllFilesLiveData = Transformations.switchMap(zipLiveData(_showLatest, fileManipulators)) { zipped ->
         if (zipped.first && Features.isEnabled(FeatureId.FILE_STORAGE)) {
-            fileStorageWorker?.observeAllLatest(zipped.second.first, zipped.second.second, zipped.second.third) ?: allFilesLiveData
+            getFileUseCase.observeAllLatest(zipped.second.first, zipped.second.second, zipped.second.third)
         } else {
             allFilesLiveData
         }
@@ -72,6 +78,16 @@ class FileStorageViewModel : ViewModel() {
         _showLatest.postValue(showLatest)
     }
 
+    fun saveQRCode(path: String, file: File) {
+        viewModelScope.launch {
+            shareFileUseCase.exportQRCOde(file).onFailure { handleError(it) }.onSuccess {
+                val localFile = java.io.File(path, file.name + ".png")
+                val out = FileOutputStream(localFile)
+                it.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+        }
+    }
+
     fun createFile(
         fileName: String,
         fileType: String,
@@ -79,8 +95,7 @@ class FileStorageViewModel : ViewModel() {
     ): LiveData<File?> {
         _isProcessing.postValue(true)
         return liveData(context = viewModelScope.coroutineContext + Dispatchers.IO) {
-            when (val result =
-                fileStorageWorker?.let { it.createFile("$fileName.$fileType", fileContent) } ?: Either.Left(FileError.FeatureNotEnabledError())) {
+            when (val result = createFileUseCase.createFile(fileContent, "$fileName.$fileType")) {
                 is Either.Left -> {
                     handleError(result.a)
                     _isProcessing.postValue(false)
@@ -98,28 +113,24 @@ class FileStorageViewModel : ViewModel() {
         editedFile: File
     ) = viewModelScope.launch {
         _isProcessing.postValue(true)
-        fileStorageWorker?.let { worker ->
-            if (fileToEdit.name != editedFile.name) {
-                worker.renameFile(fileToEdit, editedFile.name, false, true).onFailure { handleError(it) }.onSuccess {
-                    if (fileToEdit.syncState == editedFile.syncState) {
-                        _isProcessing.postValue(false)
-                    }
+        if (fileToEdit.name != editedFile.name) {
+            manipulateFileUseCase.renameFile(fileToEdit, editedFile.name, false, true).onFailure { handleError(it) }.onSuccess {
+                if (fileToEdit.syncState == editedFile.syncState) {
+                    _isProcessing.postValue(false)
                 }
             }
-            if (fileToEdit.syncState != editedFile.syncState) {
-                if (editedFile.syncState == SyncState.SYNCED) {
-                    worker.syncFileFromIPFS(fileToEdit).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-                } else {
-                    worker.deleteFile(fileToEdit, true).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-                }
+        }
+        if (fileToEdit.syncState != editedFile.syncState) {
+            if (editedFile.syncState == SyncState.SYNCED) {
+                syncFileUseCase.syncFromIPFS(fileToEdit).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
+            } else {
+                manipulateFileUseCase.deleteFile(fileToEdit, true).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
             }
-        } ?: handleError(FileError.FeatureNotEnabledError())
+        }
     }
 
     fun deleteFile(file: File, onlyLocally: Boolean = false) = viewModelScope.launch {
-        fileStorageWorker?.let { worker ->
-            worker.deleteFile(file, onlyLocally).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-        } ?: handleError(FileError.FeatureNotEnabledError())
+        manipulateFileUseCase.deleteFile(file, onlyLocally).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
     }
 
     fun renameFile(
@@ -128,21 +139,15 @@ class FileStorageViewModel : ViewModel() {
         onlyLocally: Boolean = false,
         override: Boolean = true,
     ) = viewModelScope.launch {
-        fileStorageWorker?.let { worker ->
-            worker.renameFile(file, newName, onlyLocally, override).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-        } ?: handleError(FileError.FeatureNotEnabledError())
+        manipulateFileUseCase.renameFile(file, newName, onlyLocally, override).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
     }
 
     fun syncFileContentToIPFS(file: File) = viewModelScope.launch {
-        fileStorageWorker?.let { worker ->
-            worker.syncFileToIPFS(file).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-        } ?: handleError(FileError.FeatureNotEnabledError())
+        syncFileUseCase.syncToIPFS(file).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
     }
 
     fun syncFileContentFromIPFS(file: File) = viewModelScope.launch {
-        fileStorageWorker?.let { worker ->
-            worker.syncFileFromIPFS(file).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
-        } ?: handleError(FileError.FeatureNotEnabledError())
+        syncFileUseCase.syncFromIPFS(file).onFailure { handleError(it) }.onSuccess { _isProcessing.postValue(false) }
     }
 
     fun onFileDeletedExternally(file: File?) {

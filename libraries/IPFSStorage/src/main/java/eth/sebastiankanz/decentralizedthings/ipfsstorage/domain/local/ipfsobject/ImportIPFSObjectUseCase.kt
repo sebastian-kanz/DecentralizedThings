@@ -49,7 +49,7 @@ internal class ImportIPFSObjectUseCase(
                                     metaHash = metaHash,
                                     previousVersionHash = ipfsMetaObject.previousVersionHash,
                                     version = ipfsMetaObject.version,
-                                    // TODO: add type???
+                                    type = ipfsMetaObject.type,
                                     name = ipfsMetaObject.name,
                                     timestamp = ipfsMetaObject.timestamp,
                                     decryptedSize = ipfsMetaObject.decryptedSize,

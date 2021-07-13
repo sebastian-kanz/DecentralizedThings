@@ -4,5 +4,5 @@ import eth.sebastiankanz.decentralizedthings.filestorage.ui.FileStorageViewModel
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    single { FileStorageViewModel() }
+    single { FileStorageViewModel(get(), get(), get(), get(), get()) }
 }

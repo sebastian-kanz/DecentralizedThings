@@ -42,7 +42,7 @@ internal class GetIPFSObjectUseCase(
     fun observeAllLatestByType(type: IPFSObjectType): LiveData<List<IPFSObject>> {
         val mediatorLiveData: MediatorLiveData<List<IPFSObject>> = MediatorLiveData<List<IPFSObject>>()
         mediatorLiveData.addSource(ipfsObjectRepo.observeAll()) { allObjects ->
-            val latestVersionObjects = allObjects.filter { outer -> allObjects.none { inner -> inner.previousVersionHash == outer.metaHash } }.filter { it.type == type }
+            val latestVersionObjects = allObjects.filter { it.type == type }.filter { outer -> allObjects.none { inner -> inner.previousVersionHash == outer.metaHash } }
             mediatorLiveData.postValue(latestVersionObjects)
         }
         return mediatorLiveData

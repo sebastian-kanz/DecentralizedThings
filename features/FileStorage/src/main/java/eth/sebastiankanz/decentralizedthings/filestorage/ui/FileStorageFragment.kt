@@ -1,6 +1,7 @@
 package eth.sebastiankanz.decentralizedthings.filestorage.ui
 
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.FileObserver
@@ -8,7 +9,12 @@ import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.view.animation.OvershootInterpolator
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -19,15 +25,17 @@ import com.google.android.material.snackbar.Snackbar
 import eth.sebastiankanz.decentralizedthings.base.data.model.SyncState
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.model.File
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.model.FileError
-import eth.sebastiankanz.decentralizedthings.base.features.filestorage.operators.FileFilter
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.operators.FileSorting
 import eth.sebastiankanz.decentralizedthings.base.features.filestorage.operators.FileSortingOrder
 import eth.sebastiankanz.decentralizedthings.base.helpers.RecyclerTouchListener
 import eth.sebastiankanz.decentralizedthings.base.helpers.RecyclerTouchListener.OnRowClickListener
-import eth.sebastiankanz.decentralizedthings.base.ui.EditFileDialog
-import eth.sebastiankanz.decentralizedthings.base.ui.FileSortingDialog
+import eth.sebastiankanz.decentralizedthings.base.ui.EditFileBottomSheet
+import eth.sebastiankanz.decentralizedthings.base.ui.FileInfoBottomSheet
+import eth.sebastiankanz.decentralizedthings.base.ui.FilterFilesBottomSheet
+import eth.sebastiankanz.decentralizedthings.base.ui.SortFilesBottomSheet
 import eth.sebastiankanz.decentralizedthings.filestorage.R
 import eth.sebastiankanz.decentralizedthings.filestorage.databinding.FragmentFileStorageBinding
+import eth.sebastiankanz.decentralizedthings.ui.MainActivity
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.inject
 import java.util.logging.Logger
@@ -47,27 +55,21 @@ class FileStorageFragment : Fragment() {
     private lateinit var directoryObserver: FileObserver
     private lateinit var storageAdapter: StorageCardAdapter
 
+    private var fabOpenAnimation: Animation? = null
+    private var fabCloseAnimation: Animation? = null
+    private var isFabMenuOpen = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentFileStorageBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    ) = FragmentFileStorageBinding.inflate(inflater, container, false).also { _binding = it }.root
 
-    private fun init() {
-        initErrorHandling()
-        initAppBar()
-        initRecyclerView(emptyList())
-        initDirectoryObserver()
-        initFab()
+    override fun onResume() {
+        super.onResume()
+        (activity as MainActivity).onFragmentLoaded()
+        collapseFabMenu()
     }
-
-//        DataBindingUtil.inflate<FragmentFileStorageBinding>(inflater, R.layout.fragment_file_storage, container, false).also {
-//            _binding = it
-//            binding.lifecycleOwner = this
-//        }.root
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,11 +77,28 @@ class FileStorageFragment : Fragment() {
         init()
 
         storageViewModel.latestAllFilesLiveData.observe(viewLifecycleOwner) { files ->
-            storageAdapter.apply {
-                setItems(files)
+            if(files.isEmpty()) {
+                binding.emptyContainer.visibility = View.VISIBLE
+                binding.storageRecyclerView.visibility = View.GONE
+            } else {
+                binding.emptyContainer.visibility = View.GONE
+                binding.storageRecyclerView.visibility = View.VISIBLE
+                storageAdapter.apply {
+                    setItems(files)
+                }
             }
         }
+    }
 
+    private fun init() {
+        initErrorHandling()
+        initRecyclerView(emptyList())
+        initDirectoryObserver()
+        initFab()
+        initLoadingBar()
+    }
+
+    private fun initLoadingBar() {
         storageViewModel.isProcessing.observe(viewLifecycleOwner) { isProcessing ->
             if (isProcessing) {
                 binding.loadingBar.visibility = View.VISIBLE
@@ -95,17 +114,17 @@ class FileStorageFragment : Fragment() {
             override fun onEvent(event: Int, path: String?) {
                 when (event) {
                     DELETE -> {
-                        Snackbar.make(binding.root, "File content deleted: " + path.toString(), Snackbar.LENGTH_SHORT)
-                            .setAnchorView(binding.fab)
-                            .show()
+//                        Snackbar.make(binding.root, "File content deleted: " + path.toString(), Snackbar.LENGTH_SHORT)
+//                            .setAnchorView(binding.fab)
+//                            .show()
                         val deletedLocalFile =
                             storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
                         storageViewModel.onFileDeletedExternally(deletedLocalFile)
                     }
                     MODIFY -> {
-                        Snackbar.make(binding.root, "File content modified: " + path.toString(), Snackbar.LENGTH_SHORT)
-                            .setAnchorView(binding.fab)
-                            .show()
+//                        Snackbar.make(binding.root, "File content modified: " + path.toString(), Snackbar.LENGTH_SHORT)
+//                            .setAnchorView(binding.fab)
+//                            .show()
                         val modifiedLocalFile =
                             storageViewModel.allFilesLiveData.value?.find { it.localPath == context?.getExternalFilesDir(null)?.path + "/" + path }
                         storageViewModel.onFileModifiedExternally(modifiedLocalFile)
@@ -121,12 +140,28 @@ class FileStorageFragment : Fragment() {
     }
 
     private fun initFab() {
+
+        fabOpenAnimation = AnimationUtils.loadAnimation(requireContext(), R.anim.fab_open)
+        fabCloseAnimation = AnimationUtils.loadAnimation(requireContext(), R.anim.fab_close)
+        val fabHandler = FabHandler()
         binding.fab.setOnClickListener {
-            binding.loadingBar.visibility = View.VISIBLE
-            var chooseFile = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            chooseFile.type = "*/*"
-            chooseFile = Intent.createChooser(chooseFile, "Choose a file")
-            startActivityForResult(chooseFile, 1234)
+            fabHandler.onBaseFabClick(it)
+        }
+        binding.createFab.setOnClickListener {
+            fabHandler.onCreateFabClick(it)
+            collapseFabMenu()
+        }
+        binding.filterFab.setOnClickListener {
+            fabHandler.onFilterFabClick(it)
+            collapseFabMenu()
+        }
+        binding.searchFab.setOnClickListener {
+            fabHandler.onSearchFabClick(it)
+            collapseFabMenu()
+        }
+        binding.sortFab.setOnClickListener {
+            fabHandler.onSortFabClick(it)
+            collapseFabMenu()
         }
     }
 
@@ -136,6 +171,7 @@ class FileStorageFragment : Fragment() {
                 is FileError.GeneralFileError -> showErrorMessage(it.msg)
                 else -> showErrorMessage("Unknown error.")
             }
+            binding.loadingBar.visibility = View.GONE
         })
     }
 
@@ -187,49 +223,6 @@ class FileStorageFragment : Fragment() {
         directoryObserver.stopWatching()
     }
 
-    private fun initAppBar() {
-        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.filter -> {
-                    MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("Filter files")
-                        .setMessage("Choose a filter to change the files displayed.")
-                        .setNeutralButton("Cancel") { dialog, _ ->
-                            dialog.dismiss()
-                        }
-                        .setPositiveButton("Apply") { _, _ ->
-                            val currentFileFilters = storageViewModel.fileFilters.value?.toMutableList() ?: mutableListOf()
-                            currentFileFilters.add(FileFilter.FileSyncStateFilter(SyncState.SYNCED))
-                            storageViewModel.fileFilters.postValue(currentFileFilters)
-                        }
-                        .show()
-                    true
-                }
-                R.id.sort -> {
-                    val requestKey = "SortingFiles"
-                    requireActivity().supportFragmentManager.setFragmentResultListener(requestKey, viewLifecycleOwner) { key, bundle ->
-                        if (key == requestKey) {
-                            val result = bundle.getString(requestKey, "")
-                            val sorting = Json.decodeFromString(FileSorting.serializer(), result)
-                            storageViewModel.fileSorting.postValue(sorting)
-                        }
-                    }
-                    FileSortingDialog.show(
-                        requireActivity().supportFragmentManager,
-                        requestKey,
-                        storageViewModel.fileSorting.value ?: FileSorting.FileNameSorting(FileSortingOrder.ASC),
-                        storageViewModel.fileSorting.value?.order ?: FileSortingOrder.ASC
-                    )
-                    true
-                }
-                R.id.search -> {
-                    true
-                }
-                else -> false
-            }
-        }
-    }
-
     private fun initRecyclerView(files: List<File>) {
         storageAdapter = StorageCardAdapter(
             storageViewModel,
@@ -251,8 +244,11 @@ class FileStorageFragment : Fragment() {
                 supportsChangeAnimations = false
             }
         }
-
-        recyclerView.addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL))
+        val itemDecoration = DividerItemDecoration(recyclerView.context, DividerItemDecoration.VERTICAL)
+        context?.apply {
+            itemDecoration.setDrawable(ContextCompat.getDrawable(this, R.drawable.divider)!!)
+        }
+        recyclerView.addItemDecoration(itemDecoration)
 
         val touchListener = RecyclerTouchListener(activity, recyclerView)
         touchListener
@@ -278,15 +274,18 @@ class FileStorageFragment : Fragment() {
                                 storageViewModel.editFile(affectedFile, file)
                             }
                         }
-                        EditFileDialog.show(requireActivity().supportFragmentManager, affectedFile, affectedFile.metaHash)
+                        EditFileBottomSheet.show(requireActivity().supportFragmentManager, affectedFile, affectedFile.metaHash)
+//                        EditFileDialog.show(requireActivity().supportFragmentManager, affectedFile, affectedFile.metaHash)
                     }
                     R.id.info_task -> {
-                        showHint("info")
+                        (activity as MainActivity).showFragment(FileStorageDetailFragment())
                     }
                 }
             }
             .setLongClickable(true) { position ->
-                showHint("long")
+                val affectedFile = storageAdapter.getItem(position)
+                storageViewModel.saveQRCode(requireContext().getExternalFilesDir(null).toString(), affectedFile)
+                LOGGER.info(Json.encodeToString(File.serializer(), affectedFile))
             }
 
         recyclerView.addOnItemTouchListener(touchListener)
@@ -334,5 +333,92 @@ class FileStorageFragment : Fragment() {
         storageViewModel.createFile(fileName, fileType, fileContent).observe(viewLifecycleOwner, {
             binding.loadingBar.visibility = View.GONE
         })
+    }
+
+    private fun expandFabMenu() {
+        if(!isFabMenuOpen) {
+            ViewCompat.animate(binding.fab).rotation(180.0f).withLayer().setDuration(800).setInterpolator(OvershootInterpolator(5.0f)).start()
+            binding.createLayout.startAnimation(fabOpenAnimation)
+            binding.filterLayout.startAnimation(fabOpenAnimation)
+            binding.searchLayout.startAnimation(fabOpenAnimation)
+            binding.sortLayout.startAnimation(fabOpenAnimation)
+            binding.createFab.isClickable = true
+            binding.filterFab.isClickable = true
+            binding.searchFab.isClickable = true
+            binding.sortFab.isClickable = true
+            isFabMenuOpen = true
+        }
+    }
+
+    private fun collapseFabMenu() {
+        if(isFabMenuOpen) {
+            ViewCompat.animate(binding.fab).rotation(0.0f).withLayer().setDuration(800).setInterpolator(OvershootInterpolator(5.0f)).start()
+            binding.createLayout.startAnimation(fabCloseAnimation)
+            binding.filterLayout.startAnimation(fabCloseAnimation)
+            binding.searchLayout.startAnimation(fabCloseAnimation)
+            binding.sortLayout.startAnimation(fabCloseAnimation)
+            binding.createFab.isClickable = false
+            binding.filterFab.isClickable = false
+            binding.searchFab.isClickable = false
+            binding.sortFab.isClickable = false
+            isFabMenuOpen = false
+        }
+    }
+
+    inner class FabHandler {
+        fun onBaseFabClick(view: View?) {
+            if (isFabMenuOpen) collapseFabMenu() else expandFabMenu()
+        }
+
+        fun onCreateFabClick(view: View?) {
+            binding.loadingBar.visibility = View.VISIBLE
+            var chooseFile = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            chooseFile.type = "*/*"
+            chooseFile = Intent.createChooser(chooseFile, "Choose a file")
+            startActivityForResult(chooseFile, 1234)
+        }
+
+        fun onFilterFabClick(view: View?) {
+//            Snackbar.make(binding.root, "Filter FAB tapped", Snackbar.LENGTH_SHORT).show()
+//            MaterialAlertDialogBuilder(requireContext())
+//                .setTitle("Filter files")
+//                .setMessage("Choose a filter to change the files displayed.")
+//                .setNeutralButton("Cancel") { dialog, _ ->
+//                    dialog.dismiss()
+//                }
+//                .setPositiveButton("Apply") { _, _ ->
+////                    val currentFileFilters = storageViewModel.fileFilters.value?.toMutableList() ?: mutableListOf()
+////                    currentFileFilters.add(FileFilter.FileSyncStateFilter(SyncState.SYNCED))
+////                    storageViewModel.fileFilters.postValue(currentFileFilters)
+//                    storageViewModel.showLatestFiles(false)
+//                }
+//                .show()
+
+            FilterFilesBottomSheet.show(
+                requireActivity().supportFragmentManager,
+                "requestKey",
+            )
+        }
+
+        fun onSearchFabClick(view: View?) {
+            Snackbar.make(binding.root, "Search FAB tapped", Snackbar.LENGTH_SHORT).show()
+        }
+
+        fun onSortFabClick(view: View?) {
+            val requestKey = "SortingFiles"
+            requireActivity().supportFragmentManager.setFragmentResultListener(requestKey, viewLifecycleOwner) { key, bundle ->
+                if (key == requestKey) {
+                    val result = bundle.getString(requestKey, "")
+                    val sorting = Json.decodeFromString(FileSorting.serializer(), result)
+                    storageViewModel.fileSorting.postValue(sorting)
+                }
+            }
+            SortFilesBottomSheet.show(
+                requireActivity().supportFragmentManager,
+                requestKey,
+                storageViewModel.fileSorting.value ?: FileSorting.FileNameSorting(FileSortingOrder.ASC),
+                storageViewModel.fileSorting.value?.order ?: FileSortingOrder.ASC
+            )
+        }
     }
 }

@@ -18,6 +18,7 @@
             <option value="$PROJECT_DIR$/libraries" />
             <option value="$PROJECT_DIR$/libraries/IPFSStorage" />
             <option value="$PROJECT_DIR$/libraries/IPFS_HTTP_CLIENT" />
+            <option value="$PROJECT_DIR$/libraries/QRCodeManager" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

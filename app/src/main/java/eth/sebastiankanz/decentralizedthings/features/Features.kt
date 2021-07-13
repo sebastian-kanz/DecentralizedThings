@@ -3,7 +3,6 @@ package eth.sebastiankanz.decentralizedthings.features
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import eth.sebastiankanz.decentralizedthings.base.features.Feature
-import eth.sebastiankanz.decentralizedthings.base.features.Worker
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.logging.Logger
 
@@ -86,8 +85,8 @@ object Features {
 //        )
     }
 
-    fun getFeatureWorker(feature: FeatureId): Worker? {
-        return features[feature]?.getWorker()
+    fun getEnabledFeatures(): List<FeatureId> {
+        return features.filter { isEnabled(it.key) }.map { it.key }
     }
 
     fun setFeatureFragmentHost(feature: FeatureId, activity: AppCompatActivity, container: Int) {

@@ -55,7 +55,7 @@ internal class CreateIPFSObjectUseCase(
             when (val typedRootResult = ipfsObjectRepo.getRootByType(type)) {
                 is Either.Left -> return typedRootResult
                 is Either.Right -> {
-                    val adaptedPath = getAdaptedPath(path, type)
+                    val adaptedPath = path//getAdaptedPath(path, type)
                     if (typedRootResult.b == null) {
                         //create Root for current type
                         when (val createRootResult = createInternal(ByteArray(0), getTypedRootName(type), IPFSObjectType.ROOT(type))) {
@@ -71,7 +71,7 @@ internal class CreateIPFSObjectUseCase(
                                 onlyLocally,
                                 objects
                             ).onSuccess {
-                                if (isTypedRootPath(adaptedPath, type)) {
+                                if (isTypedRootPath(adaptedPath ?: "", type)) {
                                     updateTypedRoot(type)
                                 }
                             }
@@ -88,7 +88,7 @@ internal class CreateIPFSObjectUseCase(
                             onlyLocally,
                             objects
                         ).onSuccess {
-                            if (isTypedRootPath(adaptedPath, type)) {
+                            if (isTypedRootPath(adaptedPath ?: "", type)) {
                                 updateTypedRoot(type)
                             }
                         }
@@ -146,6 +146,7 @@ internal class CreateIPFSObjectUseCase(
                             previousVersionHash = previousVersionHash,
                             version = (previousVersionNumber + 1),
                             name = name,
+                            type = type,
                             timestamp = Instant.now().toEpochMilli(),
                             decryptedSize = data.size.toLong(),
                             contentIV = contentIV,

@@ -34,8 +34,6 @@ interface Feature {
      */
     fun onStop() {}
 
-    fun getWorker(): Worker
-
     fun launchFeatureFragment() {}
 
     interface Dependencies {

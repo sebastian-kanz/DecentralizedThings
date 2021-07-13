@@ -748,7 +748,8 @@ public class RecyclerTouchListener implements RecyclerView.OnItemTouchListener, 
                     // On Click listener for background options
                     else if (swipeable && bgVisible && !fgPartialViewClicked) {
                         final int optionID = getOptionViewID(motionEvent);
-                        if (optionID >= 0 && touchedPosition >= 0) {
+//                        if (optionID >= 0 && touchedPosition >= 0) {
+                        if (touchedPosition >= 0) {
                             final int downPosition = touchedPosition;
                             closeVisibleBG(new OnSwipeListener() {
                                 @Override

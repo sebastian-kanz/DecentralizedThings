@@ -77,7 +77,7 @@ internal class ManipulateIPFSObjectUseCase(
                         objectWithContent.type,
                         objectWithContent.localPath,
                         override,
-                        objectWithContent.previousVersionHash,
+                        objectWithContent.metaHash,
                         objectWithContent.version,
                         onlyLocally
                     )

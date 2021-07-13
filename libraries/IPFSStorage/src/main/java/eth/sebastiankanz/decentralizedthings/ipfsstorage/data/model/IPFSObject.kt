@@ -2,6 +2,7 @@ package eth.sebastiankanz.decentralizedthings.ipfsstorage.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Model and Entity class for a Object.
@@ -13,7 +14,6 @@ import androidx.room.PrimaryKey
  * Afterwards [IPFSMetaObject.contentHash] and [IPFSMetaObject.contentIV] can be used to get and decrypt the content of the object.
  * The other attributes of [IPFSMetaObject] can be used to restore the full [IPFSObject].
  */
-
 @Entity(tableName = "objects")
 data class IPFSObject(
     // [Not in IPFS] ipfs hash of the encrypted meta content

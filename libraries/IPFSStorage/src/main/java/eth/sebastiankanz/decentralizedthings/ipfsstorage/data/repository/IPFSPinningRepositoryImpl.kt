@@ -2,13 +2,15 @@ package eth.sebastiankanz.decentralizedthings.ipfsstorage.data.repository
 
 import eth.sebastiankanz.decentralizedthings.base.helpers.Either
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.helpers.ErrorEntity
+import eth.sebastiankanz.decentralizedthings.ipfsstorage.network.InfuraClient
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.network.PinataClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 
 internal class IPFSPinningRepositoryImpl(
-    private val pinataClient: PinataClient
+    private val pinataClient: PinataClient,
+    private val infuraClient: InfuraClient,
 ) : IPFSPinningRepository {
 
     companion object {
@@ -21,7 +23,8 @@ internal class IPFSPinningRepositoryImpl(
         return withContext(Dispatchers.IO) {
             try {
                 val pinataResponse = pinataClient.pinByHash(hash, pinName)
-                if (pinataResponse.id != "") {
+                val infuraResponse = infuraClient.pinByHash(hash)
+                if (pinataResponse.id != "" && infuraResponse.pins.isNotEmpty()) {
                     Either.Right(true)
                 } else {
                     Either.Right(false)
@@ -34,10 +37,15 @@ internal class IPFSPinningRepositoryImpl(
 
     override suspend fun unPinByHash(hash: String): Either<ErrorEntity, Boolean> {
         LOGGER.info("Un-pinning hash $hash.")
-        return withContext(Dispatchers.IO) {
-            try {
-                val pinataResponse = pinataClient.unPinByHash(hash)
-                if (pinataResponse.string() == HTTP_OK) {
+            return try {
+                val infuraUnpinningSuccess = infuraClient.unPinByHash(hash)
+                val pinataUnpinningSuccess = if (pinataClient.isPinningJobFinished(hash)) {
+                    pinataClient.unPinByHash(hash)
+                } else {
+                    LOGGER.warning("Could not unpin from pinata as active pinning jobs stil exist.")
+                    false
+                }
+                if (infuraUnpinningSuccess && pinataUnpinningSuccess) {
                     Either.Right(true)
                 } else {
                     Either.Right(false)
@@ -45,6 +53,5 @@ internal class IPFSPinningRepositoryImpl(
             } catch (e: Exception) {
                 Either.Left(ErrorEntity.RepoError.PinningError(e.message))
             }
-        }
     }
 }

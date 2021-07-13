@@ -6,22 +6,6 @@
     android:background="#cccccc"
     android:clickable="true">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:elevation="0dp">
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:paddingStart="6dp"
-            android:paddingEnd="16dp"
-            app:contentInsetStartWithNavigation="0dp"
-            app:navigationIcon="@drawable/ic_close" />
-
-    </com.google.android.material.appbar.AppBarLayout>
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -77,26 +61,42 @@
                 android:text="Deleted locally" />
         </RadioGroup>
 
-        <Button
-            android:id="@+id/cancelButton"
-            style="@style/Widget.MaterialComponents.Button.Icon"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/button_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="6dp"
-            android:text="Cancel"
-            app:icon="@drawable/ic_close"
-            app:layout_constraintTop_toBottomOf="@id/radioGroup" />
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/radioGroup">
+            <Button
+                android:id="@+id/cancelButton"
+                style="@style/Widget.MaterialComponents.Button.Icon"
+                android:backgroundTint="?colorError"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Cancel"
+                android:layout_marginRight="12dp"
+                app:icon="@drawable/ic_close"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/saveButton"
+                app:layout_constraintHorizontal_weight="1"/>
 
-        <Button
-            android:id="@+id/saveButton"
-            style="@style/Widget.MaterialComponents.Button.Icon"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="6dp"
-            android:text="Save"
-            app:icon="@drawable/ic_check"
-            app:layout_constraintTop_toBottomOf="@id/cancelButton" />
+            <Button
+                android:id="@+id/saveButton"
+                style="@style/Widget.MaterialComponents.Button.Icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                android:layout_marginLeft="12dp"
+                app:icon="@drawable/ic_check"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/cancelButton"
+                app:layout_constraintHorizontal_weight="1"/>
 
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

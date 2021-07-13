@@ -8,11 +8,13 @@ import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 internal interface PinataAPI {
     @Headers("Content-Type: application/json")
@@ -34,12 +36,10 @@ internal interface PinataAPI {
         @Path("hash") hash: String
     ): ResponseBody
 
-    companion object {
-        const val jwt =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlOWM4OTQyMi1mNjJhLTRiYzEtODkxMC00MWEyZWU1MTZjYTAiLCJlbWFpbCI6InNlYmFzdGlhbi5rYW56QGdvb2dsZW1haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siaWQiOiJGUkExIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZX0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjA4Mzc2YzlmYzA0MjNjNmE1Y2QzIiwic2NvcGVkS2V5U2VjcmV0IjoiYWQ1YTMyY2FkM2E1OWQzYTQyYjAwZjQ0NWFmYjE1MTg1MmNmNzEyY2QyMTg1OGJmZjYyODgzMDk2NTQ3ZDg0ZiIsImlhdCI6MTYwODU3NjA5OH0.LB3prOCOytmEtou_qQg9JrgQVcLLr7nt3SWmOaR-t-g"
-        const val apiSecret = "ad5a32cad3a59d3a42b00f445afb151852cf712cd21858bff62883096547d84f"
-        const val apiKey = "08376c9fc0423c6a5cd3"
-    }
+    @GET("pinning/pinJobs")
+    suspend fun getActivePinningJobForHash(
+        @Query("ipfs_pin_hash") hash: String
+    ): PinataPinningJobResponse
 }
 
 data class PinataPinHashResponse constructor(
@@ -102,4 +102,11 @@ data class PinataRegion constructor(
     val id: String,
     @SerializedName("desiredReplicationCount")
     val desiredReplicationCount: Int,
+)
+
+data class PinataPinningJobResponse constructor(
+    @SerializedName("count")
+    val count: Int,
+    @Transient
+    val rows: String,
 )

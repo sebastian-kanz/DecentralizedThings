@@ -15,5 +15,5 @@ internal val repositoryModule = module {
     factory<IPFSObjectRepository> { IPFSObjectRepositoryImpl(get()) }
     factory<EncryptionBundleRepository> { EncryptionBundleRepositoryImpl(get()) }
     factory<IPFSRepository> { IPFSRepositoryImpl() }
-    factory<IPFSPinningRepository> { IPFSPinningRepositoryImpl(get(named("PinataClient"))) }
+    factory<IPFSPinningRepository> { IPFSPinningRepositoryImpl(get(named("PinataClient")), get(named("InfuraClient"))) }
 }

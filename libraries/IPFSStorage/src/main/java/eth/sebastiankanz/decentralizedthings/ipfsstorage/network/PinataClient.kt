@@ -3,6 +3,7 @@ package eth.sebastiankanz.decentralizedthings.ipfsstorage.network
 import androidx.lifecycle.LiveData
 import com.github.leonardoxh.livedatacalladapter.Resource
 import com.google.gson.Gson
+import eth.sebastiankanz.decentralizedthings.ipfsstorage.data.repository.IPFSPinningRepositoryImpl
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -28,7 +29,15 @@ internal class PinataClient(
         )
     }
 
-    suspend fun unPinByHash(hash: String) = pinataAPI.unPin(hash)
+    suspend fun unPinByHash(hash: String): Boolean {
+        val pinataUnpinningResult = pinataAPI.unPin(hash)
+        return pinataUnpinningResult?.string() == "OK"
+    }
+
+    suspend fun isPinningJobFinished(hash: String): Boolean{
+        val activePinningJobResult = pinataAPI.getActivePinningJobForHash(hash)
+        return activePinningJobResult.count == 0
+    }
 
     fun pinByFile(file: File, pinName: String): LiveData<Resource<PinataPinFileResponse>> {
         val requestFile = file.asRequestBody("multipart/form-data".toMediaTypeOrNull())

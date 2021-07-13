@@ -38,13 +38,14 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:foreground="?attr/selectableItemBackground">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/itemContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@color/background"
+                    android:background="?colorSurface"
                     android:elevation="4dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
@@ -134,7 +135,7 @@
                         android:id="@+id/info_task"
                         android:layout_width="64dp"
                         android:layout_height="64dp"
-                        android:background="#69F0AE"
+                        android:background="?colorSecondary"
                         android:clickable="true"
                         android:focusable="true"
                         android:orientation="vertical">
@@ -159,7 +160,7 @@
                         android:id="@+id/edit_task"
                         android:layout_width="64dp"
                         android:layout_height="64dp"
-                        android:background="#18FFFF"
+                        android:background="?colorSecondaryVariant"
                         android:clickable="true"
                         android:focusable="true"
                         android:orientation="vertical">
@@ -184,7 +185,7 @@
                         android:id="@+id/delete_task"
                         android:layout_width="64dp"
                         android:layout_height="64dp"
-                        android:background="#FF5252"
+                        android:background="?colorError"
                         android:clickable="true"
                         android:focusable="true"
                         android:orientation="vertical">

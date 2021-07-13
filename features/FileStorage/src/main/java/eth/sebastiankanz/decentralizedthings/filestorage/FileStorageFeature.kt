@@ -1,24 +1,18 @@
 package eth.sebastiankanz.decentralizedthings.filestorage
 
 import android.content.Context
-import android.content.Intent
-import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import eth.sebastiankanz.decentralizedthings.base.features.Feature
-import eth.sebastiankanz.decentralizedthings.base.features.Worker
-import eth.sebastiankanz.decentralizedthings.filestorage.di.modules.featureModule
 import eth.sebastiankanz.decentralizedthings.filestorage.di.modules.useCaseModule
 import eth.sebastiankanz.decentralizedthings.filestorage.di.modules.viewModelModule
-import eth.sebastiankanz.decentralizedthings.filestorage.ui.FileStorageActivity
 import eth.sebastiankanz.decentralizedthings.filestorage.ui.FileStorageFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
-import org.koin.java.KoinJavaComponent.inject
 import java.util.logging.Logger
 import kotlin.coroutines.CoroutineContext
 
@@ -30,7 +24,7 @@ class FileStorageFeature(
 ) : Feature, LifecycleOwner, CoroutineScope {
 
     override val label: String
-        get() = "FileStorageFeature"
+        get() = "Files"
 
     override var featureFragmentHost: Feature.FeatureFragmentHost? = null
 
@@ -39,20 +33,18 @@ class FileStorageFeature(
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + job
 
-    private val worker by inject(FileStorageWorker::class.java)
-
     override fun onCreate() {
         logger.info("$label created.")
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         loadKoinModules(
-            listOf(featureModule, useCaseModule, viewModelModule)
+            listOf(useCaseModule, viewModelModule)
         )
     }
 
     override fun onDestroy() {
         logger.info("$label destroyed.")
         unloadKoinModules(
-            listOf(featureModule, useCaseModule)
+            listOf(useCaseModule, viewModelModule)
         )
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
     }
@@ -69,18 +61,11 @@ class FileStorageFeature(
 
     override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
-    override fun getWorker(): Worker {
-        return worker
-    }
-
     override fun launchFeatureFragment() {
-        logger.info("$label fragment launched.")
+        logger.info("Launching $label fragment.")
         featureFragmentHost?.apply {
             activity.supportFragmentManager.beginTransaction().replace(container, rootFragment).commit()
         }
-//        val intent = Intent(context, FileStorageActivity::class.java)
-//        intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
-//        context.startActivity(intent)
     }
 
     companion object Provider : Feature.Provider {

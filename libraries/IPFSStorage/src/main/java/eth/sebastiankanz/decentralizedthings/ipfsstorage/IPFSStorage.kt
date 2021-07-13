@@ -1,6 +1,9 @@
 package eth.sebastiankanz.decentralizedthings.ipfsstorage
 
+import android.graphics.Bitmap
+import eth.sebastiankanz.decentralizedthings.base.helpers.Either
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.data.model.IPFSObject
+import eth.sebastiankanz.decentralizedthings.ipfsstorage.data.model.IPFSObjectExportable
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.data.model.IPFSObjectType
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.di.modules.databaseModule
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.di.modules.networkModule
@@ -12,6 +15,9 @@ import eth.sebastiankanz.decentralizedthings.ipfsstorage.domain.local.ipfsobject
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.domain.local.ipfsobject.ManipulateIPFSObjectUseCase
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.domain.local.ipfsobject.ShareIPFSObjectUseCase
 import eth.sebastiankanz.decentralizedthings.ipfsstorage.domain.local.ipfsobject.SyncIPFSObjectUseCase
+import eth.sebastiankanz.decentralizedthings.ipfsstorage.helpers.ErrorEntity
+import eth.sebastiankanz.decentralizedthings.qrcodemanager.QRCodeManager
+import kotlinx.serialization.json.Json
 import org.koin.core.context.loadKoinModules
 import org.koin.java.KoinJavaComponent.inject
 
@@ -66,6 +72,15 @@ class IPFSStorage private constructor() {
     suspend fun syncIPFSObjectFromIPFS(
         ipfsObject: IPFSObject
     ) = syncIPFSObjectUseCase.syncObjectFromIPFS(ipfsObject)
+
+    suspend fun exportIPFSObjectQRCode(
+        ipfsObject: IPFSObject
+    ): Either<ErrorEntity, Bitmap> {
+        val qrCodeManager = QRCodeManager.newInstance()
+        val exportableObject = shareIPFSObjectUseCase.generateExportableObject(ipfsObject)
+        val json = Json.encodeToString(IPFSObjectExportable.serializer(), exportableObject)
+        return Either.Right(qrCodeManager.generateQRCode(json))
+    }
 
     companion object {
         fun newInstance(): IPFSStorage {

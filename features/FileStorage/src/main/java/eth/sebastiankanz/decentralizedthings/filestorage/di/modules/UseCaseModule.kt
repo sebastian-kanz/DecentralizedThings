@@ -4,6 +4,7 @@ import eth.sebastiankanz.decentralizedthings.filestorage.domain.CreateFileUseCas
 import eth.sebastiankanz.decentralizedthings.filestorage.domain.FilterSortFileUseCase
 import eth.sebastiankanz.decentralizedthings.filestorage.domain.GetFileUseCase
 import eth.sebastiankanz.decentralizedthings.filestorage.domain.ManipulateFileUseCase
+import eth.sebastiankanz.decentralizedthings.filestorage.domain.ShareFileUseCase
 import eth.sebastiankanz.decentralizedthings.filestorage.domain.SyncFileUseCase
 import org.koin.dsl.module
 
@@ -15,4 +16,5 @@ val useCaseModule = module {
     single { CreateFileUseCase(get()) }
     single { ManipulateFileUseCase(get()) }
     single { SyncFileUseCase(get()) }
+    single { ShareFileUseCase(get()) }
 }

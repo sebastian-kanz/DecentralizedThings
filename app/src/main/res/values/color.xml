@@ -41,25 +41,26 @@
     <!--theme attributes, see https://www.youtube.com/watch?v=Owkf8DhAOSo-->
 
     <!--Color palette-->
+<!--    https://github.com/material-components/material-components-android-examples-->
+    <color name="primaryDark">#4caf50</color> <!--Color primary (dark)-->
+    <color name="primaryLight">#4caf50</color> <!--Color primary (light)-->
+    <color name="primaryVariantDark">#087f23</color> <!--Color primary variant (dark)-->
+    <color name="primaryVariantLight">#80e27e</color> <!--Color primary variant (light)-->
 
-    <color name="purple_200">#bb86fc</color> <!--Color primary (dark)-->
-    <color name="purple_500">#6200ee</color> <!--Color primary (light)-->
-    <color name="purple_600">#4b01d0</color> <!--Color primary variant (dark)-->
-    <color name="purple_700">#3700b3</color> <!--Color primary variant (light)-->
+    <color name="secondaryDark">#607d8c</color> <!--Color secondary (dark)-->
+    <color name="secondaryLight">#607d8c</color> <!--Color secondary (light)-->
+    <color name="secondaryVariantDark">#34515f</color> <!--Color secondary variant (dark)-->
+    <color name="secondaryVariantLight">#8eacbc</color> <!--Color secondary variant (light)-->
 
-    <color name="green_200">#03dac6</color> <!--Color secondary-->
-    <color name="green_500">#018786</color> <!--Color secondary variant-->
-
-    <color name="red_200">#cf6679</color> <!--Color error (dark)-->
-    <color name="red_600">#b00020</color> <!--Color error (light)-->
+    <color name="errorDark">#cf6679</color> <!--Color error (dark)-->
+    <color name="errorLight">#b00020</color> <!--Color error (light)-->
 
     <!--Color surface (light), color on error (light), -->
     <!--color on surface (dark), color on surface (dark)-->
-    <color name="white_50">#ffffff</color>
+    <color name="surfaceLight">#ffffff</color>
 
-    <color name="black_800">#121212</color> <!--Color surface (dark)-->
+    <color name="surfaceDark">#000000</color> <!--Color surface (dark)-->
     <!--Color on secondary (light), color on background (light),-->
     <!--color on surface (light)-->
-    <color name="black_900">#000000</color>
 
 </resources>
